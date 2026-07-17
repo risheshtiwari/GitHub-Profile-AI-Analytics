@@ -8,6 +8,7 @@ from datetime import datetime
 
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import selectinload
 
 from app.db.models import AIAnalysis, CommitHistory, Developer, Repository
 from app.services import activity_analyzer, language_analyzer, repo_analyzer, scoring
@@ -177,7 +178,15 @@ async def persist_analysis(db: AsyncSession, analysis: dict) -> Developer:
 
 
 async def get_developer_or_404(db: AsyncSession, username: str) -> Developer:
-    result = await db.execute(select(Developer).where(Developer.github_username == username))
+    result = await db.execute(
+        select(Developer)
+        .options(
+            selectinload(Developer.repositories),
+            selectinload(Developer.commit_history),
+            selectinload(Developer.ai_analysis),
+        )
+        .where(Developer.github_username == username)
+    )
     developer = result.scalar_one_or_none()
     if developer is None:
         raise DeveloperNotFoundError(username)

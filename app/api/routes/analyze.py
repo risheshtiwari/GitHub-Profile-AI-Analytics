@@ -37,7 +37,7 @@ async def analyze_developer(
             analysis["profile"], analysis["languages"], skill_analysis
         )
 
-        existing = developer.ai_analysis
+        existing = (await db.execute(select(AIAnalysis).where(AIAnalysis.developer_id == developer.id))).scalar_one_or_none()
         if existing is None:
             existing = AIAnalysis(developer_id=developer.id)
             db.add(existing)
