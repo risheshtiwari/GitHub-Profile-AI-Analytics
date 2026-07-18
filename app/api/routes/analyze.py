@@ -1,5 +1,7 @@
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
+
 
 from app.api.deps import get_current_user
 from app.db.models import AIAnalysis, User
@@ -52,7 +54,6 @@ async def analyze_developer(
         # Don't fail the whole request if the AI provider errors out — the
         # deterministic analytics are already saved and useful on their own.
         import logging
-        logging.getLogger(__name__).warning("AI analysis failed for %s: %s", payload.username, exc)
-
+        logging.getLogger(__name__).exception("AI analysis failed for %s (%s): %s", payload.username, type(exc).__name__, exc)
     await db.refresh(developer)
     return developer
