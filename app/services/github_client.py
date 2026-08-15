@@ -92,6 +92,36 @@ class GitHubClient:
         except GitHubNotFoundError:
             return []
 
+    # ---- Repo Chat support ----
+
+    async def get_repo(self, owner: str, repo: str) -> dict:
+        """Repository metadata: description, default branch, stars, topics."""
+        resp = await self._get(f"/repos/{owner}/{repo}")
+        return resp.json()
+
+    async def get_repo_languages(self, owner: str, repo: str) -> dict[str, int]:
+        return await self.get_languages(f"{owner}/{repo}")
+
+    async def download_zipball(self, owner: str, repo: str, ref: str = "HEAD") -> bytes:
+        """Downloads a repository snapshot as a zip archive.
+
+        One request beats walking the git tree and fetching contents file by
+        file (which costs hundreds of API calls and burns the rate limit).
+        GitHub 302-redirects to codeload, so redirects must be followed and the
+        timeout raised for large repos.
+        """
+        resp = await self._client.get(
+            f"/repos/{owner}/{repo}/zipball/{ref}",
+            follow_redirects=True,
+            timeout=httpx.Timeout(120.0, connect=20.0),
+        )
+        if resp.status_code == 404:
+            raise GitHubNotFoundError(f"/repos/{owner}/{repo}/zipball/{ref}")
+        if resp.status_code == 403 and resp.headers.get("X-RateLimit-Remaining") == "0":
+            raise GitHubRateLimitError("GitHub API rate limit exceeded")
+        resp.raise_for_status()
+        return resp.content
+
     @staticmethod
     def parse_gh_datetime(value: str | None) -> datetime | None:
         if not value:

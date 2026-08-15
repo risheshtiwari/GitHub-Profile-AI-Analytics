@@ -13,6 +13,7 @@ services:
         condition: service_started
     volumes:
       - ./app:/code/app
+      - ./frontend:/code/frontend
     restart: unless-stopped
 
   db:

@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Bench — GitHub Developer Analytics</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&family=IBM+Plex+Mono:wght@400;500;600&family=Public+Sans:ital,wght@0,400;0,500;0,600;1,400&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="./css/app.css" />
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' fill='%23131A2E'/><rect x='6' y='18' width='4' height='8' fill='%232B44E8'/><rect x='13' y='11' width='4' height='15' fill='%232B44E8'/><rect x='20' y='6' width='4' height='20' fill='%23E07C24'/></svg>" />
+</head>
+<body>
+
+<!-- ── Top bar ───────────────────────────────────────────────────────── -->
+<header class="topbar">
+  <a class="mark" href="#/analyze">
+    <svg class="mark__glyph" viewBox="0 0 32 32" aria-hidden="true">
+      <rect x="5" y="17" width="5" height="10"></rect>
+      <rect x="13" y="10" width="5" height="17"></rect>
+      <rect x="21" y="5" width="5" height="22" class="mark__accent"></rect>
+    </svg>
+    <span class="mark__name">Bench</span>
+    <span class="mark__sub">developer analytics &amp; repo chat</span>
+  </a>
+
+  <div class="topbar__right">
+    <span class="conn" id="conn-state"><i></i>checking API</span>
+    <button class="btn btn--ghost" id="btn-account">Sign in</button>
+  </div>
+</header>
+
+<div class="shell">
+  <!-- ── Nav rail ────────────────────────────────────────────────────── -->
+  <nav class="rail" id="rail">
+    <a class="rail__item" href="#/analyze" data-view="analyze">
+      <span class="rail__ord">01</span>
+      <span class="rail__label">Analyze a developer</span>
+      <span class="rail__hint">profile, languages, activity, score</span>
+    </a>
+    <a class="rail__item" href="#/compare" data-view="compare">
+      <span class="rail__ord">02</span>
+      <span class="rail__label">Compare two developers</span>
+      <span class="rail__hint">side-by-side breakdown</span>
+    </a>
+    <a class="rail__item" href="#/chat" data-view="chat">
+      <span class="rail__ord">03</span>
+      <span class="rail__label">Chat with a repository</span>
+      <span class="rail__hint">ask what the code does and how</span>
+    </a>
+
+    <div class="rail__foot">
+      <a href="/docs" target="_blank" rel="noopener">API reference ↗</a>
+      <a href="/health" target="_blank" rel="noopener">Health ↗</a>
+    </div>
+  </nav>
+
+  <!-- ── Views ───────────────────────────────────────────────────────── -->
+  <main class="stage" id="stage">
+
+    <!-- 01 · ANALYZE ------------------------------------------------- -->
+    <section class="view" id="view-analyze" hidden>
+      <div class="prompt">
+        <div class="prompt__head">
+          <span class="eyebrow">01 · Analyze</span>
+          <h1 class="prompt__title">Read a developer's work</h1>
+          <p class="prompt__blurb">
+            Pulls every public repository, aggregates languages and commit history,
+            scores the profile, then asks a model what it all adds up to.
+          </p>
+        </div>
+        <form class="field" id="form-analyze">
+          <label class="field__label" for="in-username">GitHub username</label>
+          <div class="field__row">
+            <input class="input" id="in-username" name="username" placeholder="torvalds" autocomplete="off" spellcheck="false" required />
+            <button class="btn btn--solid" type="submit" id="btn-analyze">Run analysis</button>
+          </div>
+          <p class="field__note">
+            First run takes 10–40 seconds — it is fetching and analysing every repo.
+            Results are cached, so a re-run is instant.
+          </p>
+        </form>
+        <div class="samples">
+          <span>Try</span>
+          <button class="chip" data-sample="torvalds">torvalds</button>
+          <button class="chip" data-sample="tiangolo">tiangolo</button>
+          <button class="chip" data-sample="manoj5130">manoj5130</button>
+        </div>
+      </div>
+      <div id="analyze-out"></div>
+    </section>
+
+    <!-- 02 · COMPARE ------------------------------------------------- -->
+    <section class="view" id="view-compare" hidden>
+      <div class="prompt">
+        <div class="prompt__head">
+          <span class="eyebrow">02 · Compare</span>
+          <h1 class="prompt__title">Put two profiles side by side</h1>
+          <p class="prompt__blurb">
+            Same analytics, run twice, aligned on every axis: language mix, repository
+            quality, contribution consistency, and the composite score.
+          </p>
+        </div>
+        <form class="field" id="form-compare">
+          <label class="field__label">Two GitHub usernames</label>
+          <div class="field__row field__row--pair">
+            <input class="input" id="in-user1" placeholder="torvalds" autocomplete="off" spellcheck="false" required />
+            <span class="vs">vs</span>
+            <input class="input" id="in-user2" placeholder="tiangolo" autocomplete="off" spellcheck="false" required />
+            <button class="btn btn--solid" type="submit" id="btn-compare">Compare</button>
+          </div>
+          <p class="field__note">Runs both analyses — expect up to a minute on a cold cache.</p>
+        </form>
+      </div>
+      <div id="compare-out"></div>
+    </section>
+
+    <!-- 03 · REPO CHAT ----------------------------------------------- -->
+    <section class="view" id="view-chat" hidden>
+      <div class="prompt prompt--tight">
+        <div class="prompt__head">
+          <span class="eyebrow">03 · Repo chat</span>
+          <h1 class="prompt__title">Ask a codebase how it works</h1>
+          <p class="prompt__blurb">
+            Point it at any public repository. Every answer cites the exact lines it
+            came from — click a citation to read the source it used.
+          </p>
+        </div>
+        <form class="field" id="form-index">
+          <label class="field__label" for="in-repo">Repository URL</label>
+          <div class="field__row">
+            <input class="input input--mono" id="in-repo" placeholder="https://github.com/tiangolo/fastapi" autocomplete="off" spellcheck="false" required />
+            <button class="btn btn--solid" type="submit" id="btn-index">Open repository</button>
+          </div>
+          <p class="field__note">
+            Accepts a full URL, an SSH remote, or the <code>owner/repo</code> shorthand.
+          </p>
+        </form>
+        <div class="samples">
+          <span>Try</span>
+          <button class="chip" data-repo="tiangolo/fastapi">tiangolo/fastapi</button>
+          <button class="chip" data-repo="psf/requests">psf/requests</button>
+          <button class="chip" data-repo="pallets/flask">pallets/flask</button>
+        </div>
+      </div>
+      <div id="chat-out"></div>
+    </section>
+  </main>
+</div>
+
+<!-- ── Account dialog ─────────────────────────────────────────────────── -->
+<div class="scrim" id="scrim" hidden>
+  <div class="dialog" role="dialog" aria-modal="true" aria-labelledby="dlg-title">
+    <div class="dialog__head">
+      <span class="eyebrow">Account</span>
+      <h2 id="dlg-title">Sign in to run analyses</h2>
+      <p>Write actions — running an analysis, indexing a repo, asking a question — are
+        authenticated. Create an account; it is stored in your own Postgres.</p>
+    </div>
+    <div class="tabs" id="auth-tabs">
+      <button class="tab is-active" data-mode="register">Create account</button>
+      <button class="tab" data-mode="login">Sign in</button>
+    </div>
+    <form id="form-auth" class="dialog__form">
+      <label class="field__label" for="in-auth-user">Username</label>
+      <input class="input" id="in-auth-user" autocomplete="username" required />
+      <label class="field__label" for="in-auth-pass">Password</label>
+      <input class="input" id="in-auth-pass" type="password" autocomplete="current-password" required minlength="4" />
+      <div class="dialog__actions">
+        <button type="button" class="btn btn--ghost" id="btn-auth-cancel">Cancel</button>
+        <button type="submit" class="btn btn--solid" id="btn-auth-submit">Create account</button>
+      </div>
+      <p class="dialog__err" id="auth-err" hidden></p>
+    </form>
+  </div>
+</div>
+
+<div class="toasts" id="toasts"></div>
+
+<script type="module" src="./js/main.js"></script>
+</body>
+</html>
