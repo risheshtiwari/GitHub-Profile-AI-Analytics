@@ -193,3 +193,76 @@ export function versusBars(rows, nameA, nameB) {
     <text x="${labelWidth + 18}" y="10" font-family="IBM Plex Mono, monospace" font-size="10.5" fill="#131A2E">${escapeHtml(nameB)}</text>
     ${body}`);
 }
+
+
+/* ── Job match: overall score dial ─────────────────────────────────────── */
+
+export function scoreGauge(score, label) {
+  const value = Math.max(0, Math.min(100, Number(score) || 0));
+  const size = 190;
+  const centre = size / 2;
+  const radius = 74;
+  const circumference = Math.PI * radius;          // half circle
+  const filled = (value / 100) * circumference;
+
+  // Band thresholds mirror the recommendation bands in match_engine.py.
+  const ticks = [50, 65, 80, 90].map((mark) => {
+    const angle = Math.PI * (1 - mark / 100);
+    const x1 = centre + Math.cos(angle) * (radius - 11);
+    const y1 = centre - Math.sin(angle) * (radius - 11);
+    const x2 = centre + Math.cos(angle) * (radius + 11);
+    const y2 = centre - Math.sin(angle) * (radius + 11);
+    return `<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="#C9D2E0" stroke-width="1"></line>`;
+  }).join("");
+
+  return svg(`0 0 ${size} ${size * 0.72}`, `
+    <path d="M ${centre - radius} ${centre} A ${radius} ${radius} 0 0 1 ${centre + radius} ${centre}"
+          fill="none" stroke="#EDF0F6" stroke-width="17" stroke-linecap="butt"></path>
+    <path d="M ${centre - radius} ${centre} A ${radius} ${radius} 0 0 1 ${centre + radius} ${centre}"
+          fill="none" stroke="#2B44E8" stroke-width="17" stroke-linecap="butt"
+          stroke-dasharray="${filled} ${circumference}"></path>
+    ${ticks}
+    <text x="${centre}" y="${centre - 12}" text-anchor="middle" font-family="Bricolage Grotesque, sans-serif"
+          font-size="38" font-weight="800" fill="#131A2E">${value.toFixed(0)}%</text>
+    <text x="${centre}" y="${centre + 10}" text-anchor="middle" font-family="IBM Plex Mono, monospace"
+          font-size="11" fill="#56617D">${escapeHtml(label || "")}</text>
+    <text x="${centre - radius}" y="${centre + 20}" font-family="IBM Plex Mono, monospace"
+          font-size="9.5" fill="#8A93A8">0</text>
+    <text x="${centre + radius}" y="${centre + 20}" text-anchor="end" font-family="IBM Plex Mono, monospace"
+          font-size="9.5" fill="#8A93A8">100</text>`);
+}
+
+/* ── Job match: score x weight = contribution ──────────────────────────── */
+
+export function weightedBars(rows) {
+  const width = 460;
+  const rowHeight = 40;
+  const height = rows.length * rowHeight + 26;
+  const labelWidth = 132;
+  const trackWidth = width - labelWidth - 78;
+
+  const body = rows.map((row, index) => {
+    const y = index * rowHeight + 20;
+    const scoreWidth = Math.max(2, (row.score / 100) * trackWidth);
+    // The weight bar shows how much of that score actually reaches the total.
+    const contributionWidth = Math.max(1, (row.contribution / 100) * trackWidth * (100 / row.weight) * (row.weight / 100));
+
+    return `
+      <text x="${labelWidth - 10}" y="${y + 11}" text-anchor="end" font-family="IBM Plex Mono, monospace"
+            font-size="11" fill="#131A2E">${escapeHtml(row.label)}</text>
+      <rect x="${labelWidth}" y="${y}" width="${trackWidth}" height="11" fill="#F0F3F8"></rect>
+      <rect x="${labelWidth}" y="${y}" width="${scoreWidth}" height="11" fill="url(#hatch-signal)"></rect>
+      <rect x="${labelWidth}" y="${y + 14}" width="${contributionWidth}" height="7" fill="#2B44E8"></rect>
+      <text x="${labelWidth + trackWidth + 8}" y="${y + 10}" font-family="IBM Plex Mono, monospace"
+            font-size="10.5" fill="#56617D">${row.score.toFixed(0)} x ${row.weight}%</text>
+      <text x="${labelWidth + trackWidth + 8}" y="${y + 22}" font-family="IBM Plex Mono, monospace"
+            font-size="10.5" font-weight="600" fill="#131A2E">= ${row.contribution.toFixed(1)}</text>`;
+  }).join("");
+
+  return svg(`0 0 ${width} ${height}`, `
+    <rect x="0" y="2" width="9" height="9" fill="url(#hatch-signal)"></rect>
+    <text x="14" y="10" font-family="IBM Plex Mono, monospace" font-size="10" fill="#56617D">component score</text>
+    <rect x="120" y="2" width="9" height="9" fill="#2B44E8"></rect>
+    <text x="134" y="10" font-family="IBM Plex Mono, monospace" font-size="10" fill="#56617D">contribution to total</text>
+    ${body}`);
+}

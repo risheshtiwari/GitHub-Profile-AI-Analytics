@@ -13,6 +13,7 @@ from app.api.routes import (
     compare,
     developer,
     interview,
+    job_match,
     languages,
     repo_chat,
     repositories,
@@ -62,6 +63,7 @@ app.include_router(score.router)
 app.include_router(top_projects.router)
 app.include_router(compare.router)
 app.include_router(repo_chat.router)
+app.include_router(job_match.router)
 
 
 @app.get("/health", tags=["health"])

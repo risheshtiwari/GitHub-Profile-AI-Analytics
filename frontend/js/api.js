@@ -110,6 +110,10 @@ export const api = {
   transcript: (id) => request(`/repo-chat/sessions/${id}/messages`, { needsAuth: true }),
   deleteSession: (id) =>
     request(`/repo-chat/sessions/${id}`, { method: "DELETE", needsAuth: true }),
+  // Multipart: the browser must set its own boundary, so no Content-Type here.
+  jobMatch: (formData) => requestForm("/job-match", formData),
+  jobMatchReports: () => request("/job-match/reports", { needsAuth: true }),
+
   askInSession: (id, question) =>
     request(`/repo-chat/sessions/${id}/messages`, {
       method: "POST",
@@ -117,6 +121,26 @@ export const api = {
       needsAuth: true,
     }),
 };
+
+/** Multipart upload — fetch sets the multipart boundary itself. */
+async function requestForm(path, formData) {
+  if (!auth.signedIn) throw new ApiError("Sign in first.", 401);
+
+  let response;
+  try {
+    response = await fetch(path, {
+      method: "POST",
+      headers: { Authorization: `Bearer ${auth.token}` },
+      body: formData,
+    });
+  } catch {
+    throw new ApiError("Can't reach the API. Is the server running?", 0);
+  }
+
+  if (response.status === 401) auth.clear();
+  if (!response.ok) throw await readError(response);
+  return response.json();
+}
 
 /**
  * Streams an answer over SSE.

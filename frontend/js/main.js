@@ -6,8 +6,9 @@ import { mountAuth } from "./auth-ui.js";
 import { mountAnalyze } from "./views/analyze.js";
 import { mountCompare } from "./views/compare.js";
 import { mountChat } from "./views/chat.js";
+import { mountJobMatch } from "./views/jobmatch.js";
 
-const VIEWS = ["analyze", "compare", "chat"];
+const VIEWS = ["analyze", "compare", "chat", "jobmatch"];
 
 function show(view) {
   const active = VIEWS.includes(view) ? view : "analyze";
@@ -21,6 +22,7 @@ function show(view) {
     analyze: "Analyze a developer · Bench",
     compare: "Compare developers · Bench",
     chat: "Chat with a repository · Bench",
+    jobmatch: "Candidate job match · Bench",
   }[active];
 }
 
@@ -44,6 +46,7 @@ mountAuth();
 mountAnalyze();
 mountCompare();
 mountChat();
+mountJobMatch();
 
 window.addEventListener("hashchange", route);
 route();

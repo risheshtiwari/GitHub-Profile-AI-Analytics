@@ -53,7 +53,7 @@ check("stylesheet forces [hidden] to win over author display rules", Boolean(ove
 /* Which elements does the app actually toggle with `hidden`? */
 const dom = new JSDOM(html);
 const doc = dom.window.document;
-const toggled = ["#scrim", "#view-analyze", "#view-compare", "#view-chat", "#auth-err"];
+const toggled = ["#scrim", "#view-analyze", "#view-compare", "#view-chat", "#view-jobmatch", "#auth-err"];
 
 for (const selector of toggled) {
   const node = doc.querySelector(selector);

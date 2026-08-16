@@ -459,6 +459,49 @@ table.data td.num, table.data th.num { text-align: right; font-family: var(--mon
 .session__meta { margin-left: auto; font-family: var(--mono); font-size: 10.5px; color: var(--ink-3); }
 
 /* ==========================================================================
+   Job match
+   ========================================================================== */
+
+.filepick { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.filepick label.btn { margin: 0; }
+
+.verdict { display: flex; gap: 26px; align-items: center; flex-wrap: wrap; }
+.verdict > div:first-child { flex: 0 0 220px; max-width: 220px; }
+.verdict__side { flex: 1 1 300px; min-width: 0; }
+
+.tag--good { border-color: var(--moss); color: var(--moss); background: rgba(46,125,91,.08); }
+.tag--warn { border-color: var(--flag); color: #9A5210; background: var(--flag-wash); }
+.tag--bad { border-color: var(--danger); color: var(--danger); background: rgba(180,35,43,.07); }
+/* Unknown is deliberately neutral — it must not read as a failure state. */
+.tag--unknown { border-color: var(--rule); color: var(--ink-2); background: var(--paper); border-style: dashed; }
+
+.skill { border: 1px solid var(--rule); border-radius: var(--radius); margin-bottom: 7px; overflow: hidden; }
+.skill__bar {
+  display: flex; align-items: center; gap: 10px; width: 100%; flex-wrap: wrap;
+  background: var(--panel); border: 0; cursor: pointer; text-align: left; padding: 9px 12px;
+}
+.skill__bar:hover { background: var(--paper); }
+.skill__name { font-weight: 600; font-size: 14px; min-width: 120px; }
+.skill__score { margin-left: auto; font-family: var(--mono); font-size: 12px; font-weight: 600; }
+.skill__detail { display: none; padding: 4px 14px 14px; border-top: 1px solid var(--rule-soft); background: var(--paper); }
+.skill.is-open .skill__detail { display: block; }
+
+.evidence { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px; margin-top: 10px; }
+.evidence__list { margin: 0; padding-left: 18px; font-size: 13px; color: var(--ink-2); }
+.evidence__list li { padding: 2px 0; }
+
+.discrepancy { border-left: 3px solid var(--flag); background: var(--flag-wash); padding: 12px 14px; border-radius: var(--radius); margin-bottom: 10px; }
+.discrepancy--additional_evidence { border-left-color: var(--moss); background: rgba(46,125,91,.06); }
+.discrepancy__head { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; font-size: 14px; }
+.discrepancy__icon { font-size: 15px; }
+.discrepancy p { margin: 0 0 4px; }
+
+.disclaimer {
+  font-size: 12.5px; color: var(--ink-2); border: 1px dashed var(--rule);
+  border-radius: var(--radius); padding: 12px 14px; margin: 14px 0 0; background: var(--paper);
+}
+
+/* ==========================================================================
    States
    ========================================================================== */
 

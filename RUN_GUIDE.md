@@ -22,7 +22,7 @@ Set these in `.env` before starting:
 | --- | --- | --- |
 | `SECRET_KEY` | signing your login token | works, but use any long random string |
 | `GITHUB_TOKEN` | GitHub API rate limit | 60 requests/hour instead of 5,000 — you will hit the limit fast |
-| `OPENAI_API_KEY` | AI summaries, chat answers, overview | analytics and indexing still work; AI panels stay empty |
+| `OPENAI_API_KEY` | AI summaries, chat answers, overview, **and job matching** | analytics and indexing still work; AI panels stay empty. Job match needs this one — resume and JD extraction are LLM-based |
 
 A GitHub token needs **no scopes** for public data: GitHub → Settings →
 Developer settings → Personal access tokens → Fine-grained → Generate, with
@@ -129,6 +129,48 @@ Check `docker compose logs api` for the AI error (usually a missing or invalid
 
 *Proves: `GET /repo-chat/sessions`, `GET .../messages`, `DELETE .../sessions/{id}`.*
 
+### 04 · Match a candidate to a role
+
+You need a resume PDF. Any text-based PDF works — export one from Word or
+Google Docs. (A scanned image will be rejected with a clear message, which is
+itself worth testing.)
+
+1. Go to **04 Match a candidate to a role**.
+2. Enter a GitHub username and a company name.
+3. Paste a real job description — the fuller the better, since requirements are
+   extracted from it.
+4. Click **Choose PDF** and pick the resume, then **Run match**.
+5. Expect, in order: the verdict dial with match % and confidence, the weighted
+   calculation table, the skill ledger, discrepancies, project relevance,
+   interview questions, the learning roadmap, and the disclaimer.
+
+**The things to actually look at:**
+
+- **The calculation table.** Score × weight = contribution, for all six
+  components, summing to the headline number. Add them up by hand — they match.
+- **Click any skill row.** It expands into the evidence from each source
+  separately. Every line is specific enough to verify against the resume or the
+  GitHub profile.
+- **Find a skill the JD wants that appears nowhere.** It should read
+  *"No public evidence"* with a dashed neutral border — not a red failure — and
+  the rationale should call it a verification gap. Put CUDA or Kubernetes in the
+  JD to force this.
+- **Confidence, separately from the score.** The "Why confidence is N%" list
+  itemises each penalty. More unknowns → lower confidence, not a lower score.
+
+*Proves: `POST /job-match` (multipart), resume extraction, JD extraction,
+deterministic scoring, missing-vs-unknown, discrepancy detection.*
+
+### Job match error cases
+
+| Try | Expected |
+| --- | --- |
+| Upload a `.txt` renamed to `.pdf` | 422, "That file is not a PDF" |
+| Upload a scanned/image-only PDF | 422, "No text could be extracted" |
+| A PDF over 2 MB | 413, size limit message |
+| A two-word job description | Rejected before upload, "paste the full job description" |
+| A GitHub username that doesn't exist | 404 |
+
 ### Buffered vs streamed
 
 Uncheck **stream** next to the Ask button and ask again. Same answer, delivered
@@ -158,6 +200,10 @@ pytest -v
 
 - `tests/test_analyzers.py` — repository, language and activity analytics
 - `tests/test_scoring.py` — project and developer score formulas
+- `tests/test_job_match.py` — PDF extraction and validation, protected-attribute
+  scrubbing, JD normalisation, evidence lookup, skill classification
+  (missing vs unknown), deterministic scoring, discrepancy detection, project
+  relevance, and the `/job-match` endpoint itself
 - `tests/test_repo_chat.py` — URL parsing, file filtering, chunk line-range
   integrity, symbol detection, BM25 ranking, MMR diversification, hybrid
   search, prompt assembly
@@ -179,6 +225,12 @@ See `tests/ui/README.md`. These need no API keys and touch no network.
 
 ```
 app/
+  api/routes/job_match.py     POST /job-match + stored reports
+  services/resume_parser.py   PDF -> text -> scrubbed -> structured
+  services/jd_parser.py       JD -> categorised, weighted requirements
+  services/evidence.py        where each skill is actually demonstrated
+  services/match_engine.py    the deterministic scoring (no LLM in this file)
+  services/job_match.py       orchestration + narration
   api/routes/repo_chat.py     the 12 chat endpoints
   services/repo_ingest.py     URL parsing, zipball → filtered files
   services/chunker.py         line-windowed chunks with symbols

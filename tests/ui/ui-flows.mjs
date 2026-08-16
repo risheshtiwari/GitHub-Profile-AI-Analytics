@@ -234,5 +234,79 @@ await waitFor(() => text("#chat-out").includes("Couldn't open"), { label: "error
 check("invalid URL produces a clear message", text("#chat-out").includes("Not a valid GitHub repository URL"));
 check("error suggests a fix", text("#chat-out").includes("Public repositories only"));
 
+
+// ── Job match ──────────────────────────────────────────────────────────────
+console.log("\n[11] Match a candidate to a role");
+window.location.hash = "#/jobmatch";
+window.dispatchEvent(new window.HashChangeEvent("hashchange"));
+await sleep(150);
+check("job match view renders", !$("#view-jobmatch").hidden);
+check("empty state shown", text("#jobmatch-out").includes("No analysis yet"));
+
+$("#in-jm-username").value = "priya";
+$("#in-jm-company").value = "Acme Corp";
+$("#in-jm-jd").value =
+  "We are hiring a Backend Engineer to build Python services. Required: Python, " +
+  "FastAPI, PostgreSQL. Preferred: Docker and CUDA. Bachelor's degree and 2+ years required.";
+
+// jsdom has File/FileList via the DOM, but not a file picker — inject directly.
+const pdfBytes = readFileSync(resolve(ROOT, "tests/ui/sample_resume.pdf"));
+// Node's File, not jsdom's: the app calls Node's FormData here, and the two
+// realms' Blob types are not interchangeable. In a real browser both come from
+// the same realm, so this substitution only exists for the test environment.
+const file = new File([pdfBytes], "resume.pdf", { type: "application/pdf" });
+// Shape a FileList-alike: indexed access + length + item(), which is what the
+// view reads. jsdom has File but no way to populate an <input type=file>.
+const fileList = { 0: file, length: 1, item: (index) => (index === 0 ? file : null) };
+Object.defineProperty($("#in-jm-resume"), "files", { value: fileList, configurable: true });
+$("#in-jm-resume").dispatchEvent(new window.Event("change", { bubbles: true }));
+await sleep(100);
+check("chosen file is shown to the user", text("#jm-file-label").includes("resume.pdf"));
+
+$("#form-jobmatch").dispatchEvent(new window.Event("submit", { bubbles: true, cancelable: true }));
+await waitFor(() => text("#jobmatch-out").includes("Verdict"), { label: "match report", timeout: 60000 });
+
+const jm = text("#jobmatch-out");
+check("overall match shown", /\d+%/.test(jm) && jm.includes("overall match"));
+check("confidence shown separately", jm.includes("confidence"));
+check("recommendation band shown", /Excellent Fit|Strong Fit|Moderate Fit|Weak Fit|Poor Fit/.test(jm));
+check("weighted calculation table rendered", jm.includes("How this number was calculated"));
+check("all six components listed",
+  ["Technical skills", "Work experience", "Project relevance", "Tools & frameworks", "Education", "Engineering practices"]
+    .every((label) => jm.includes(label)));
+check("weights add to 100%", jm.includes("100%"));
+check("confidence penalties explained", jm.includes("Why confidence is"));
+
+check("skill ledger rendered", jm.includes("Skill-by-skill evidence"));
+check("CUDA reported as no public evidence", jm.includes("No public evidence"));
+check("unknown is explained as a verification gap, not a gap",
+  jm.includes("verification gap, not a demonstrated gap"));
+check("unknown is never phrased as a deficiency",
+  !/does not know|lacks the skill|unqualified/i.test(jm));
+
+// Expanding a skill reveals its evidence.
+const skillBar = $("#jobmatch-out .skill__bar");
+skillBar.dispatchEvent(new window.MouseEvent("click", { bubbles: true }));
+await sleep(120);
+check("clicking a skill reveals its evidence",
+  $("#jobmatch-out .skill.is-open") !== null);
+check("evidence is split by source",
+  text("#jobmatch-out .skill.is-open").includes("Resume") &&
+  text("#jobmatch-out .skill.is-open").includes("GitHub"));
+
+check("project relevance table rendered", jm.includes("Project relevance"));
+check("interview questions rendered", jm.includes("Interview questions"));
+check("learning roadmap rendered", jm.includes("Learning roadmap"));
+check("disclaimer present", jm.includes("not be the sole basis"));
+check("no candidate contact details leak into the UI",
+  !jm.includes("@example.com") && !/\+91\s?98765/.test(jm));
+
+console.log("\n[12] Job match validation");
+window.location.hash = "#/jobmatch";
+$("#in-jm-jd").value = "too short";
+$("#form-jobmatch").dispatchEvent(new window.Event("submit", { bubbles: true, cancelable: true }));
+await sleep(300);
+check("short JD is rejected client-side", text("#toasts").includes("full job description"));
+
 console.log(`\n${failures === 0 ? "ALL UI CHECKS PASSED" : `${failures} CHECK(S) FAILED`}`);
 process.exit(failures === 0 ? 0 : 1);

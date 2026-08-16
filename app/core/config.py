@@ -40,6 +40,34 @@ class Settings(BaseSettings):
     chat_history_turns: int = 6              # prior turns kept in the prompt
     repo_chat_cache_ttl_seconds: int = 86_400
 
+    # ---- Job match (JD + resume + GitHub) ----
+    match_model: str = "gpt-4o-mini"
+    resume_max_bytes: int = 2_000_000        # 2 MB ceiling on uploaded PDFs
+    resume_max_pages: int = 15
+    resume_max_chars: int = 40_000           # text sent to the LLM
+
+    # Deterministic scoring weights. These must sum to 1.0 — the engine asserts
+    # it at import time so a bad .env fails loudly instead of silently skewing
+    # every candidate's score.
+    weight_technical_skills: float = 0.30
+    weight_work_experience: float = 0.25
+    weight_project_relevance: float = 0.20
+    weight_tools_frameworks: float = 0.10
+    weight_education: float = 0.05
+    weight_engineering_practices: float = 0.10
+
+    # An UNKNOWN skill (no public evidence either way) is not proof of absence,
+    # so it counts at half weight in the denominator and contributes nothing to
+    # the numerator — it dents the score less than a confirmed gap, and shows up
+    # in the confidence figure instead.
+    unknown_denominator_weight: float = 0.5
+
+    importance_weight_required: float = 1.0
+    importance_weight_preferred: float = 0.6
+    importance_weight_nice_to_have: float = 0.3
+
+    jd_cache_ttl_seconds: int = 604_800      # JD parses are safe to cache (no PII)
+
 
 @lru_cache
 def get_settings() -> Settings:
