@@ -49,6 +49,12 @@
       <span class="rail__hint">ask what the code does and how</span>
     </a>
 
+    <a class="rail__item" href="#/jobmatch" data-view="jobmatch">
+      <span class="rail__ord">04</span>
+      <span class="rail__label">Match a candidate to a role</span>
+      <span class="rail__hint">JD + resume + GitHub, with evidence</span>
+    </a>
+
     <div class="rail__foot">
       <a href="/docs" target="_blank" rel="noopener">API reference ↗</a>
       <a href="/health" target="_blank" rel="noopener">Health ↗</a>
@@ -144,6 +150,50 @@
         </div>
       </div>
       <div id="chat-out"></div>
+    </section>
+
+    <!-- 04 · JOB MATCH ----------------------------------------------- -->
+    <section class="view" id="view-jobmatch" hidden>
+      <div class="prompt">
+        <div class="prompt__head">
+          <span class="eyebrow">04 · Job match</span>
+          <h1 class="prompt__title">Match a candidate to a role</h1>
+          <p class="prompt__blurb">
+            Reads the job description, the resume and the public GitHub profile, then
+            scores the fit with a fixed weighted formula — the model extracts and
+            explains, but every percentage is computed in code and shown with its
+            working.
+          </p>
+        </div>
+        <form class="field" id="form-jobmatch">
+          <div class="field__row">
+            <div style="flex:1 1 220px">
+              <label class="field__label" for="in-jm-username">GitHub username</label>
+              <input class="input" id="in-jm-username" placeholder="torvalds" autocomplete="off" spellcheck="false" required />
+            </div>
+            <div style="flex:1 1 220px">
+              <label class="field__label" for="in-jm-company">Company</label>
+              <input class="input" id="in-jm-company" placeholder="Acme Corp" autocomplete="off" required />
+            </div>
+          </div>
+
+          <label class="field__label" style="margin-top:14px" for="in-jm-jd">Job description</label>
+          <textarea class="input" id="in-jm-jd" rows="7" placeholder="Paste the full job posting — required skills, responsibilities, experience and education requirements." required></textarea>
+
+          <label class="field__label" style="margin-top:14px">Resume (PDF)</label>
+          <div class="filepick">
+            <label class="btn btn--quiet" for="in-jm-resume">Choose PDF</label>
+            <input id="in-jm-resume" type="file" accept="application/pdf,.pdf" hidden />
+            <span class="repo-lang" id="jm-file-label">No file chosen</span>
+            <button class="btn btn--solid" type="submit" id="btn-jobmatch">Run match</button>
+          </div>
+          <p class="field__note">
+            Text-based PDFs up to 2&nbsp;MB. The file is parsed in memory and never stored;
+            contact details and any protected characteristics are stripped before analysis.
+          </p>
+        </form>
+      </div>
+      <div id="jobmatch-out"></div>
     </section>
   </main>
 </div>

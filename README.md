@@ -92,8 +92,6 @@ The test suite covers the pure-function analytics modules (`repo_analyzer`,
 `language_analyzer`, `activity_analyzer`, `scoring`) with no network or DB
 dependency — they run in under a second.
 
-<<<<<<< HEAD
-=======
 ---
 
 ## Feature: Chat With a Repository (RAG)
@@ -321,7 +319,137 @@ default, which is what makes the bundled case zero-config).
 
 ---
 
->>>>>>> e2b5bbd (connected api's to UI)
+---
+
+## Feature: Candidate Job-Fit Analysis (JD + Resume + GitHub)
+
+Upload a resume PDF, paste a job description, give a GitHub username. The system
+reads all three, then produces an **explainable** fit report: a match percentage
+you can audit line by line, evidence for every skill verdict, and an honest
+distinction between *not demonstrated* and *no public evidence*.
+
+Screen **04 · Match a candidate to a role** in the console, or
+`POST /job-match`.
+
+### The core rule: the model does not set the score
+
+```
+   JD text  ─────► jd_parser (LLM)      ─┐
+   resume PDF ───► resume_parser (LLM)  ─┤  extraction only
+   username ─────► collect_and_analyze  ─┘  (deterministic, cached)
+                                    │
+                                    ▼
+                   match_engine.compute_match   ← every number is computed here
+                                    │
+                                    ▼
+                narration (LLM): explanation, questions, roadmap
+                        (receives the scores; cannot change them)
+```
+
+The language model reads, extracts, and explains. Arithmetic happens in
+`match_engine.py`, which contains no LLM call at all. Same inputs, same score,
+every time — and there is a test asserting a narration that claims a different
+percentage cannot move the result.
+
+### Weighted scoring
+
+| Component | Weight | Evidence it draws on |
+| --- | --- | --- |
+| Technical skills | 30% | Languages, databases, cloud, domain skills — from both sources |
+| Work experience | 25% | Stated durations vs the JD's minimum, plus domain overlap |
+| Project relevance | 20% | Mean relevance of the three most relevant projects |
+| Tools & frameworks | 10% | Frameworks and tooling requirements |
+| Education | 5% | Highest level vs the JD's requirement, plus field match |
+| Engineering practices | 10% | READMEs, tests, licensing, commit consistency |
+
+Weights live in `.env` (`WEIGHT_TECHNICAL_SKILLS` and friends) and must sum to
+1.0 — `match_engine` raises at import if they don't, so a bad config fails
+loudly instead of quietly skewing every candidate.
+
+### Missing vs unknown — the distinction that matters
+
+| Verdict | Meaning | Effect on score |
+| --- | --- | --- |
+| **Strong** | Evidenced in both the resume and public GitHub | Full credit |
+| **Partial** | Evidenced in one source | Partial credit |
+| **Weak** | Listed in the resume, never described as used | Small credit |
+| **Not demonstrated** | Absent, *while comparable skills in the same category are evidenced* | Zero, full weight |
+| **No public evidence** | Absent, and the silence is uninformative | Zero, **half** weight — and it lowers confidence |
+
+A JD asking for CUDA against a candidate with no CUDA anywhere yields
+*"No public evidence of CUDA either way. This is a verification gap to raise in
+interview, not a demonstrated gap."* — never "the candidate does not know CUDA".
+
+MISSING has to be earned: it requires at least two peer skills in the same
+category to be evidenced, and it is never applied to engineering practices
+(nobody's code review habits are visible from a public profile).
+
+### Evidence for every verdict
+
+Each skill expands to show exactly where it was found:
+
+```
+Python                    Strong    required    97    conf: High
+  Resume                              GitHub
+  · Listed under languages            · Python is 92.3% of public code
+  · Used in a role at Zeta Systems     · Repository face-recognition (topic, 120★)
+```
+
+### Discrepancy detection, both directions
+
+- **Verification gap** — the resume describes using a skill that public work
+  does not corroborate. Flagged only when the profile has enough public code for
+  the silence to mean anything, and worded as a gap to confirm in interview,
+  never as an accusation. There is a test asserting the output contains no
+  accusatory vocabulary.
+- **Additional evidence** — public work evidences a skill the resume omits: the
+  candidate may be underselling themselves.
+
+### Fairness and data handling
+
+- Gender, age, date of birth, marital status, nationality, religion, caste,
+  ethnicity, political affiliation and photo references are **stripped from the
+  text before it reaches the model**, and the prompt forbids extracting them.
+  `ResumeProfile` has no field that could hold one.
+- Email addresses and phone numbers are redacted; the API response and stored
+  report carry neither, nor the candidate's name.
+- The PDF is parsed **in memory** and never written to disk. Only the derived
+  report is stored. Resume text is never logged — only counts (pages, roles,
+  skills).
+- Resume parses are deliberately **not** cached; JD parses are, since a JD
+  contains no personal data.
+- Every report carries a disclaimer that this is decision support, not a
+  decision.
+
+### API
+
+```
+POST   /job-match                 multipart: username, company, job_description, resume_pdf
+GET    /job-match/reports         your previous reports
+GET    /job-match/reports/{id}    one report in full
+DELETE /job-match/reports/{id}    delete a report
+```
+
+```bash
+curl -X POST http://localhost:8000/job-match \
+  -H "Authorization: Bearer $TOKEN" \
+  -F "username=torvalds" \
+  -F "company=Acme Corp" \
+  -F "job_description=$(cat jd.txt)" \
+  -F "resume_pdf=@resume.pdf;type=application/pdf"
+```
+
+Returns `overall_match`, `confidence`, `recommendation`, `score_breakdown`
+(score × weight = contribution per component), `skill_analysis` with evidence,
+`project_analysis`, `experience_analysis`, `evidence_discrepancies`,
+`interview_questions`, `learning_recommendations`, `methodology` and
+`disclaimer`.
+
+Errors: `422` for an unreadable or non-PDF resume and for an unusable JD, `413`
+for a file over 2 MB, `404` for an unknown GitHub user, `401` unauthenticated.
+
+---
+
 ## Design Notes / Known Simplifications
 
 - **Table creation** uses SQLAlchemy's `create_all()` on startup for simplicity.
@@ -340,8 +468,6 @@ default, which is what makes the bundled case zero-config).
   analytics (repos, languages, activity, scores) are persisted first and are
   useful even if the LLM call fails or times out.
 
-<<<<<<< HEAD
-=======
 - **Repo Chat vectors live in a JSON column**, not pgvector. Similarity is
   computed in Python over an in-process cached matrix, which is fine up to a few
   thousand chunks per repo. Beyond that, move `repo_chunks.embedding` to a
@@ -351,7 +477,13 @@ default, which is what makes the bundled case zero-config).
   function-level boundaries; the current approach keeps zero extra dependencies
   and preserves exact line ranges for citations.
 
->>>>>>> e2b5bbd (connected api's to UI)
+- **Job-fit scoring is rules-based, not learned.** The weights are a defensible
+  default, not a calibrated model — there is no labelled hiring-outcome data
+  behind them. They are exposed in `.env` precisely because any given team will
+  want to argue with them.
+- **Resume parsing needs a text-based PDF.** Scanned resumes return a clear
+  error rather than silently producing an empty profile; OCR is not wired in.
+
 ## Next Steps to Harden for Production
 
 - Add Alembic migrations instead of `create_all()`.

@@ -186,6 +186,57 @@ class FakeCompletions:
         system = kwargs["messages"][0]["content"]
         stream = kwargs.get("stream", False)
 
+        if "extract structured requirements from a job description" in system:
+            return _Resp(json.dumps({
+                "role_title": "Backend Engineer",
+                "skills": [
+                    {"name": "Python", "category": "language", "importance": "required"},
+                    {"name": "FastAPI", "category": "framework", "importance": "required"},
+                    {"name": "PostgreSQL", "category": "database", "importance": "required"},
+                    {"name": "Docker", "category": "tool", "importance": "preferred"},
+                    {"name": "CUDA", "category": "language", "importance": "preferred"},
+                ],
+                "responsibilities": ["Build and operate backend services"],
+                "min_years_experience": 2,
+                "education_min_level": "bachelors",
+                "education_fields": ["Computer Science"],
+            }))
+        if "You extract structured data from a resume" in system:
+            return _Resp(json.dumps({
+                "name": "Priya Raman",
+                "summary": "Backend engineer with 2 years building Python services.",
+                "education": [{"degree": "B.Tech", "field": "Computer Science",
+                               "institution": "IIT", "level": "bachelors"}],
+                "experience": [{"role": "Backend Engineer", "company": "Zeta Systems", "type": "job",
+                                "duration_months": 24,
+                                "description": "Built FastAPI services backed by PostgreSQL.",
+                                "technologies": ["Python", "FastAPI", "PostgreSQL"]}],
+                "skills": {"languages": ["Python"], "frameworks": ["FastAPI"],
+                           "databases": ["PostgreSQL"], "cloud": [], "tools": ["Docker"], "other": []},
+                "skill_mentions": [
+                    {"skill": "Python", "contexts": ["skills_section", "experience:Zeta Systems"]},
+                    {"skill": "FastAPI", "contexts": ["skills_section", "experience:Zeta Systems"]},
+                    {"skill": "Docker", "contexts": ["skills_section"]},
+                ],
+                "certifications": [], "projects": [], "achievements": [],
+                "total_experience_months": 24,
+            }))
+        if "candidate-role analysis" in system or "candidate\u2013role analysis" in system:
+            return _Resp(json.dumps({
+                "explanation": "Python and FastAPI are evidenced in both the resume and public code.",
+                "strengths": ["Python across multiple public repositories"],
+                "concerns": ["No public evidence of CUDA either way"],
+                "interview_questions": [
+                    {"category": "project", "question": "Walk me through the bandit router.",
+                     "why": "Most relevant public project."},
+                    {"category": "skill_gap", "question": "Have you used CUDA in private work?",
+                     "why": "No public evidence either way."},
+                ],
+                "learning_recommendations": [
+                    {"skill": "CUDA", "why": "Preferred in the JD",
+                     "steps": ["CUDA fundamentals", "Memory hierarchy", "Write a kernel"]},
+                ],
+            }))
         if "standalone search query" in system:
             return _Resp('{"query": "EXP3 importance weighted reward update BanditRouter"}')
         if "senior technical recruiter" in system:

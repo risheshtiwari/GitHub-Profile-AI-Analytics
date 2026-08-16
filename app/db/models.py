@@ -246,3 +246,31 @@ class ChatMessage(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
 
     session: Mapped["ChatSession"] = relationship(back_populates="messages")
+
+
+class JobMatchReport(Base):
+    """A stored JD + resume + GitHub match.
+
+    Deliberately stores the *derived report only* — never the uploaded PDF and
+    never its raw text. The resume file is deleted as soon as parsing finishes
+    (see services/resume_parser.py), and contact details are redacted before the
+    structured resume is persisted.
+    """
+
+    __tablename__ = "job_match_reports"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    user_id: Mapped[int | None] = mapped_column(ForeignKey("users.id"), nullable=True, index=True)
+
+    github_username: Mapped[str] = mapped_column(String(150), index=True)
+    company: Mapped[str] = mapped_column(String(200))
+    role_title: Mapped[str | None] = mapped_column(String(200), nullable=True)
+    jd_fingerprint: Mapped[str] = mapped_column(String(64), index=True)  # sha256, not the JD text
+
+    overall_match: Mapped[float] = mapped_column(Float, default=0.0)
+    confidence: Mapped[float] = mapped_column(Float, default=0.0)
+    recommendation: Mapped[str] = mapped_column(String(40), default="")
+
+    report: Mapped[dict] = mapped_column(JSON)  # full explainable breakdown
+
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, index=True)
