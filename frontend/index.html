@@ -1,0 +1,288 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<meta name="description" content="Analyse GitHub developer profiles, Chat with any Repository, and Match candidates to Roles with evidence." />
+<title>DevInsight — Developer Analytics</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="./css/app.css" />
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='7' fill='%23101828'/><path d='M8 20l4-5 4 3 5-8' stroke='%23fff' stroke-width='2.4' fill='none' stroke-linecap='round' stroke-linejoin='round'/></svg>" />
+</head>
+<body>
+
+<a class="skip-link" href="#main-content">Skip to content</a>
+
+<div class="app">
+  <!-- ── Sidebar ─────────────────────────────────────────────────────── -->
+  <aside class="sidebar" id="sidebar" aria-label="Main navigation">
+    <a class="sidebar__brand" href="#/analyze">
+      <span class="brand__logo" aria-hidden="true">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M4 17l5-6 4 3 6-9"/>
+        </svg>
+      </span>
+      <span class="brand__text">
+        <span class="brand__name">DevInsight</span>
+        <span class="brand__tag">Developer Analytics</span>
+      </span>
+    </a>
+
+    <nav class="sidebar__nav" id="nav">
+      <div class="nav__label" id="nav-label">Workspace</div>
+      <a class="nav__item" href="#/analyze" data-view="analyze" data-title="Analyze a developer">
+        <span data-icon="bar-chart"></span> Analyze
+      </a>
+      <a class="nav__item" href="#/compare" data-view="compare" data-title="Compare developers">
+        <span data-icon="git-compare"></span> Compare
+      </a>
+      <a class="nav__item" href="#/chat" data-view="chat" data-title="Chat with a repository">
+        <span data-icon="message-square"></span> Repo Chat
+      </a>
+      <a class="nav__item" href="#/jobmatch" data-view="jobmatch" data-title="Match a candidate to a role">
+        <span data-icon="clipboard-check"></span> Job Match
+      </a>
+
+      <div class="nav__label" style="margin-top:20px">References</div>
+      <a class="nav__item" href="/docs" target="_blank" rel="noopener">
+        <span data-icon="book"></span> API References
+      </a>
+    </nav>
+
+    <div class="sidebar__footer">
+      <button class="account" id="btn-account" type="button">
+        <span class="account__avatar" id="account-avatar" aria-hidden="true">?</span>
+        <span class="account__body">
+          <span class="account__name" id="account-name">Not signed in</span>
+          <span class="account__hint" id="account-hint">Signin to Run Analyses</span>
+        </span>
+        <span data-icon="log-in" id="account-icon"></span>
+      </button>
+    </div>
+  </aside>
+
+  <!-- ── Main ────────────────────────────────────────────────────────── -->
+  <div class="main">
+    <header class="topbar">
+      <button class="icon-btn" id="btn-menu" type="button" aria-label="Open navigation" aria-expanded="false" aria-controls="sidebar">
+        <span data-icon="menu"></span>
+      </button>
+      <span class="topbar__title" id="topbar-title">Analyze</span>
+      <span class="topbar__spacer"></span>
+      <span class="status-dot" id="conn-state" role="status"><i></i>Checking API</span>
+    </header>
+
+    <main class="page" id="main-content" tabindex="-1">
+
+      <!-- 01 · ANALYZE --------------------------------------------------- -->
+      <section class="view" id="view-analyze" hidden aria-labelledby="analyze-heading">
+        <div class="page__header">
+          <h1 class="page__title" id="analyze-heading">Analyze a Developer's GitHub Profile</h1>
+          <p class="page__lede">
+            Pulls every public repository, aggregates languages and commit history,
+            scores the profile, then generates AI insight on top.
+          </p>
+        </div>
+
+        <section class="card section">
+          <div class="card__body">
+            <form id="form-analyze" class="row row--end" novalidate>
+              <div class="field field--grow">
+                <label class="label" for="in-username">GitHub Username</label>
+                <input class="input" id="in-username" name="username" placeholder="torvalds"
+                       autocomplete="off" spellcheck="false" required aria-describedby="analyze-hint" />
+              </div>
+              <button class="btn btn--primary" type="submit" id="btn-analyze">
+                <span data-icon="search"></span> Run Analysis
+              </button>
+            </form>
+            <p class="hint" id="analyze-hint" style="margin-top:12px">
+              A first run takes 10–40 seconds while every repository is fetched. Results are cached, so re-runs are instant.
+            </p>
+            <div class="row" style="margin-top:12px" id="analyze-samples" aria-label="Example profiles">
+              <span class="hint">Try</span>
+              <button class="btn btn--secondary btn--sm" type="button" data-sample="torvalds">torvalds</button>
+              <button class="btn btn--secondary btn--sm" type="button" data-sample="tiangolo">tiangolo</button>
+              <button class="btn btn--secondary btn--sm" type="button" data-sample="manoj5130">manoj5130</button>
+            </div>
+          </div>
+        </section>
+
+        <div id="analyze-out" class="stack" aria-live="polite"></div>
+      </section>
+
+      <!-- 02 · COMPARE --------------------------------------------------- -->
+      <section class="view" id="view-compare" hidden aria-labelledby="compare-heading">
+        <div class="page__header">
+          <h1 class="page__title" id="compare-heading">Compare Developers</h1>
+          <p class="page__lede">
+            The same analytics, run twice and aligned on every axis: language mix,
+            repository quality, contribution consistency, and composite score.
+          </p>
+        </div>
+
+        <section class="card section">
+          <div class="card__body">
+            <form id="form-compare" class="row row--end" novalidate>
+              <div class="field field--grow">
+                <label class="label" for="in-user1">First Username</label>
+                <input class="input" id="in-user1" placeholder="torvalds" autocomplete="off" spellcheck="false" required />
+              </div>
+              <div class="field field--grow">
+                <label class="label" for="in-user2">Second Username</label>
+                <input class="input" id="in-user2" placeholder="tiangolo" autocomplete="off" spellcheck="false" required />
+              </div>
+              <button class="btn btn--primary" type="submit" id="btn-compare">
+                <span data-icon="git-compare"></span> Compare
+              </button>
+            </form>
+            <p class="hint" style="margin-top:12px">Runs both analyses — expect up to a minute on a cold cache.</p>
+          </div>
+        </section>
+
+        <div id="compare-out" class="stack" aria-live="polite"></div>
+      </section>
+
+      <!-- 03 · REPO CHAT ------------------------------------------------- -->
+      <section class="view" id="view-chat" hidden aria-labelledby="chat-heading">
+        <div class="page__header">
+          <h1 class="page__title" id="chat-heading">Chat with a Repository</h1>
+          <p class="page__lede">
+            Point it at any public repository. Every answer cites the exact lines it
+            came from — open a citation to read the source behind it.
+          </p>
+        </div>
+
+        <section class="card section">
+          <div class="card__body">
+            <form id="form-index" class="row row--end" novalidate>
+              <div class="field field--grow">
+                <label class="label" for="in-repo">Repository URL</label>
+                <input class="input input--mono" id="in-repo" placeholder="https://github.com/tiangolo/fastapi"
+                       autocomplete="off" spellcheck="false" required aria-describedby="repo-hint" />
+              </div>
+              <button class="btn btn--primary" type="submit" id="btn-index">
+                <span data-icon="folder"></span> Open repository
+              </button>
+            </form>
+            <p class="hint" id="repo-hint" style="margin-top:12px">
+              Accepts a full URL, an SSH remote, or the <code>owner/repo</code> shorthand.
+            </p>
+            <div class="row" style="margin-top:12px" aria-label="Example repositories">
+              <span class="hint">Try</span>
+              <button class="btn btn--secondary btn--sm" type="button" data-repo="tiangolo/fastapi">tiangolo/fastapi</button>
+              <button class="btn btn--secondary btn--sm" type="button" data-repo="psf/requests">psf/requests</button>
+              <button class="btn btn--secondary btn--sm" type="button" data-repo="pallets/flask">pallets/flask</button>
+            </div>
+          </div>
+        </section>
+
+        <div id="chat-out" aria-live="polite"></div>
+      </section>
+
+      <!-- 04 · JOB MATCH ------------------------------------------------- -->
+      <section class="view" id="view-jobmatch" hidden aria-labelledby="jobmatch-heading">
+        <div class="page__header">
+          <h1 class="page__title" id="jobmatch-heading">Match a Candidate to a Role</h1>
+          <p class="page__lede">
+            Reads the job description, the resume and the public GitHub profile, then
+            scores the fit with a fixed weighted formula. The model extracts and
+            explains; every percentage is computed in code and shown with its working.
+          </p>
+        </div>
+
+        <section class="card section">
+          <div class="card__body">
+            <form id="form-jobmatch" class="stack" novalidate>
+              <div class="row row--end">
+                <div class="field field--grow">
+                  <label class="label" for="in-jm-username">GitHub Username</label>
+                  <input class="input" id="in-jm-username" placeholder="torvalds" autocomplete="off" spellcheck="false" required />
+                </div>
+                <div class="field field--grow">
+                  <label class="label" for="in-jm-company">Company</label>
+                  <input class="input" id="in-jm-company" placeholder="Acme Corp" autocomplete="organization" required />
+                </div>
+              </div>
+
+              <div class="field">
+                <label class="label" for="in-jm-jd">Job Description</label>
+                <textarea class="textarea" id="in-jm-jd" rows="7" required aria-describedby="jd-hint"
+                          placeholder="Paste the full posting — required skills, responsibilities, experience and education requirements."></textarea>
+                <p class="hint" id="jd-hint">Requirements are extracted from this text, so the fuller it is, the better the match.</p>
+              </div>
+
+              <div class="field">
+                <span class="label" id="resume-label">Resume (PDF)</span>
+                <div class="filedrop" id="jm-filedrop">
+                  <span data-icon="upload" aria-hidden="true"></span>
+                  <div class="filedrop__info">
+                    <div class="filedrop__name" id="jm-file-label">No file chosen</div>
+                    <div class="filedrop__meta">Text-based PDF, up to 2 MB</div>
+                  </div>
+                  <label class="btn btn--secondary btn--sm" for="in-jm-resume">Choose PDF</label>
+                  <input id="in-jm-resume" type="file" accept="application/pdf,.pdf" class="sr-only" aria-labelledby="resume-label" />
+                </div>
+                <p class="hint">
+                  Parsed in memory and never stored. Contact details and protected characteristics
+                  are stripped before analysis.
+                </p>
+              </div>
+
+              <div class="row">
+                <button class="btn btn--primary" type="submit" id="btn-jobmatch">
+                  <span data-icon="sparkles"></span> Run Match
+                </button>
+              </div>
+            </form>
+          </div>
+        </section>
+
+        <div id="jobmatch-out" class="stack" aria-live="polite"></div>
+      </section>
+    </main>
+  </div>
+</div>
+
+<!-- ── Account dialog ─────────────────────────────────────────────────── -->
+<div class="scrim" id="scrim" hidden>
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="dlg-title" id="auth-modal">
+    <div class="modal__header">
+      <h2 id="dlg-title">Sign in to Bench</h2>
+      <p class="hint" style="margin-top:6px">
+        Running an analysis, indexing a repository or asking a question needs an account.
+        It is stored in your own database.
+      </p>
+    </div>
+    <div class="modal__body">
+      <div class="tabs" id="auth-tabs" role="tablist" aria-label="Account mode">
+        <button class="tab" type="button" role="tab" data-mode="register" aria-selected="true">Create Account</button>
+        <button class="tab" type="button" role="tab" data-mode="login" aria-selected="false">Sign in</button>
+      </div>
+
+      <form id="form-auth" class="stack" style="gap:16px;margin-top:20px" novalidate>
+        <div class="field">
+          <label class="label" for="in-auth-user">Username</label>
+          <input class="input" id="in-auth-user" autocomplete="username" required />
+        </div>
+        <div class="field">
+          <label class="label" for="in-auth-pass">Password</label>
+          <input class="input" id="in-auth-pass" type="password" autocomplete="new-password" required minlength="4" />
+        </div>
+        <p class="error-text" id="auth-err" hidden role="alert"></p>
+        <div class="modal__footer">
+          <button type="button" class="btn btn--ghost" id="btn-auth-cancel">Cancel</button>
+          <button type="submit" class="btn btn--primary" id="btn-auth-submit">Create account</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<div class="toasts" id="toasts" role="status" aria-live="polite"></div>
+
+<script type="module" src="./js/main.js"></script>
+</body>
+</html>
